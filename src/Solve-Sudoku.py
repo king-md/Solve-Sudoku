@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 #import random
+import copy
 
 class GameCell:
     def __init__(self):
@@ -86,7 +87,7 @@ class LgBox:
                 smBoxY = row//3 
                 bgBoxX = col%3
                 bgBoxY = row%3
-                print( "board[", smBoxX, "][", smBoxY, "][", bgBoxX, "][", bgBoxY, "] is:", ary[row*9+col] )
+                #print( "board[", smBoxX, "][", smBoxY, "][", bgBoxX, "][", bgBoxY, "] is:", ary[row*9+col] )
 
                 self.box[smBoxX][smBoxY].setGameCellValue(bgBoxX, bgBoxY, ary[row*9+col])
                 if( ary[row*9+col] != "-" ):
@@ -167,53 +168,56 @@ class LgBox:
 
 
 
-def analyzeBoard(bdOld, bdNew, debugIt):
-    for theRow in range(9):
-        for theCol in range(9):
-            if( True == debugIt ):
-                print( "DEBUG analyzeBoard: theCol:", theCol, " theRow:", theRow )
-            if( "-" == bdOld.getCellValue(theCol,theRow) ):
-                theSmBoxRow = theRow//3
-                theSmBoxCol = theCol//3
-                sb = set( bdOld.box[theSmBoxCol][theSmBoxRow].getUnusedValues("-",["1","2","3","4","5","6","7","8","9"], debugIt) )
-                sr = set( bdOld.getUnusedRowValues(theRow,"-",["1","2","3","4","5","6","7","8","9"], debugIt) )
-                sc = set( bdOld.getUnusedColumnValues(theCol,"-",["1","2","3","4","5","6","7","8","9"], debugIt) )
+def analyzeBoard(bdOld, debugIt):
+    bdNew = LgBox()
+    complete = False
+    analysisIterations = 0
+    while( False == complete):
+        changeCount = 0
+        for theRow in range(9):
+            for theCol in range(9):
                 if( True == debugIt ):
-                    print( "box:",theSmBoxCol,theSmBoxRow,sb )
-                    print( "col:",theCol,sc )
-                    print( "row:",theRow,sr )
-    
-                sf = ( sb & sr & sc )
-                if( True == debugIt ):
-                    if( 1 == len(sf) ):
-                        postfix = "<=========="
-                    else:
-                        postfix = ""
+                    print( "DEBUG analyzeBoard: theCol:", theCol, " theRow:", theRow )
+                if( "-" == bdOld.getCellValue(theCol,theRow) ):
+                    theSmBoxRow = theRow//3
+                    theSmBoxCol = theCol//3
+                    sb = set( bdOld.box[theSmBoxCol][theSmBoxRow].getUnusedValues("-",["1","2","3","4","5","6","7","8","9"], debugIt) )
+                    sr = set( bdOld.getUnusedRowValues(theRow,"-",["1","2","3","4","5","6","7","8","9"], debugIt) )
+                    sc = set( bdOld.getUnusedColumnValues(theCol,"-",["1","2","3","4","5","6","7","8","9"], debugIt) )
                     if( True == debugIt ):
-                        print( "matched:",sf, len(sf), theCol, theRow, bdOld.getCellValue(theCol,theRow) , postfix )
-                        print( "." )
-                if( 1 == len(sf) ):
-                    newVal = sf.pop()
-                    sf.add( newVal )
-                    bdNew.setMutableCell(theCol,theRow,newVal)
-            else:
-                bdNew.setMutableCell( theCol, theRow, bdOld.getCellValue(theCol,theRow) )
+                        print( "box:",theSmBoxCol,theSmBoxRow,sb )
+                        print( "col:",theCol,sc )
+                        print( "row:",theRow,sr )
+
+                    sf = ( sb & sr & sc )
+                    if( True == debugIt ):
+                        if( 1 == len(sf) ):
+                            postfix = "<=========="
+                        else:
+                            postfix = ""
+                        if( True == debugIt ):
+                            print( "matched:",sf, len(sf), theCol, theRow, bdOld.getCellValue(theCol,theRow) , postfix )
+                            print( "." )
+                    if( 1 == len(sf) ):
+                        newVal = sf.pop()
+                        sf.add( newVal )
+                        bdNew.setMutableCell(theCol,theRow,newVal)
+                        changeCount += 1
+                else:
+                    bdNew.setMutableCell( theCol, theRow, bdOld.getCellValue(theCol,theRow) )
+        #print( "analyzeBoardFinal[",analysisIterations,"]:", bdNew.getGameBoardAsString() )
+        for theRow in range(9):
+            for theCol in range(9):
+                bdOld.setMutableCell(theCol,theRow,bdNew.getCellValue(theCol,theRow))
+        analysisIterations += 1
+        if( changeCount == 0):
+            complete = True
+
 
 def main():
-    lb = LgBox()
-    lbNew1 = LgBox()
-    lbNew2 = LgBox()
-    lbNew3 = LgBox()
-    lbNew4 = LgBox()
-    lbNew5 = LgBox()
-    lbNew6 = LgBox()
-    lbNew7 = LgBox()
-    lbNew8 = LgBox()
-    lbNew9 = LgBox()
-    lbNew10 = LgBox()
-    
+    looped_lb = LgBox()
     # Verified this board is solved correctly (compared to the solution at https://www.sudoku-solutions.com/)
-    lb.setImmutableGameBoard([
+    looped_lb.setImmutableGameBoard([
     "5","3","-","-","7","-","-","-","-",
     "6","-","-","1","9","5","-","-","-",
     "-","9","8","-","-","-","-","6","-",
@@ -224,30 +228,11 @@ def main():
     "-","-","-","4","1","9","-","-","5",
     "-","-","-","-","8","-","-","7","9"
     ])
-    gameBoardBefore = lb.getGameBoardAsString()
-    
-    print( "Game Board 0:", gameBoardBefore )
-    analyzeBoard(lb, lbNew1, False)
-    print( "Game Board 1:", lbNew1.getGameBoardAsString() )
-    analyzeBoard(lbNew1, lbNew2, False)
-    print( "Game Board 2:", lbNew2.getGameBoardAsString() )
-    analyzeBoard(lbNew2, lbNew3, False)
-    print( "Game Board 3:", lbNew3.getGameBoardAsString() )
-    analyzeBoard(lbNew3, lbNew4, False)
-    print( "Game Board 4:", lbNew4.getGameBoardAsString() )
-    analyzeBoard(lbNew4, lbNew5, False)
-    print( "Game Board 5:", lbNew5.getGameBoardAsString() )
-    analyzeBoard(lbNew5, lbNew6, False)
-    print( "Game Board 6:", lbNew6.getGameBoardAsString() )
-    analyzeBoard(lbNew6, lbNew7, False)
-    print( "Game Board 7:", lbNew7.getGameBoardAsString() )
-    analyzeBoard(lbNew7, lbNew8, False)
-    print( "Game Board 8:", lbNew8.getGameBoardAsString() )
-    analyzeBoard(lbNew8, lbNew9, False)
-    print( "Game Board 9:", lbNew9.getGameBoardAsString() )
-    analyzeBoard(lbNew9, lbNew10, False)
-    print( "Game Board 10:", lbNew10.getGameBoardAsString() )
-    
+    print( "Game Board Loop Begin:", looped_lb.getGameBoardAsString() )
+    analyzeBoard(looped_lb, False)
+    print( "Game Board Loop Answer:", looped_lb.getGameBoardAsString() )
+
+
     goldenSolution = [
     "5","3","4","6","7","8","9","1","2",
     "6","7","2","1","9","5","3","4","8",
@@ -261,6 +246,7 @@ def main():
     ]
 
     return
+
 
 
 main()
